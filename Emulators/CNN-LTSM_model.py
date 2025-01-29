@@ -15,7 +15,7 @@ from tensorflow.keras.layers import (
     SpatialDropout2D, BatchNormalization
 )
 
-import random 
+import random
 
 simus = ['ssp126',
          'ssp370',
@@ -148,6 +148,21 @@ cnn_model = None
 
 # Uncomment when you want specific model
 
+# Original ClimateBench CNN
+cnn_model = Sequential()
+cnn_model.add(Input(shape=(slider, 96, 144, 4)))
+cnn_model.add(TimeDistributed(Conv2D(20, (3, 3), padding='same', activation='relu'), input_shape=(slider, 96, 144, 4)))
+cnn_model.add(TimeDistributed(AveragePooling2D(2)))
+cnn_model.add(TimeDistributed(GlobalAveragePooling2D()))
+cnn_model.add(LSTM(25, activation='relu'))
+cnn_model.add(Dense(1*96*144))
+cnn_model.add(Activation('linear'))
+cnn_model.add(Reshape((1, 96, 144)))
+
+cnn_model.compile(optimizer='rmsprop', loss='mse', metrics=['mse']) 
+
+# --------------------------------------------------------------------------------------------------------------------------------------
+
 # # ADAM
 # cnn_model = Sequential()
 # cnn_model.add(Input(shape=(slider, 96, 144, 4)))
@@ -184,26 +199,6 @@ cnn_model = None
 # cnn_model.add(Reshape((1, 96, 144)))
 
 # cnn_model.compile(optimizer='rmsprop', loss='mse', metrics=['mse']) # Default optimizer
-
-# --------------------------------------------------------------------------------------------------------------------------------------
-
-# Spartial 2D Dropout
-
-cnn_model = Sequential()
-cnn_model.add(Input(shape=(slider, 96, 144, 4)))
-cnn_model.add(TimeDistributed(Conv2D(20, (3, 3), padding='same', activation='relu'), input_shape=(slider, 96, 144, 4)))
-cnn_model.add(TimeDistributed(AveragePooling2D(2)))
-cnn_model.add(TimeDistributed(GlobalAveragePooling2D()))
-
-cnn_model.add(TimeDistributed(SpatialDropout2D(0.2)))  # Adding spatial dropout layer
-cnn_model.add(TimeDistributed(BatchNormalization()))   # Adding batch normalization layer
-
-cnn_model.add(LSTM(25, activation='relu', return_sequences=False))
-
-cnn_model.add(Activation('linear'))
-cnn_model.add(Reshape((1, 96, 144)))
-
-cnn_model.compile(optimizer='rmsprop', loss='mse', metrics=['mse']) # Default optimizer
 
 # --------------------------------------------------------------------------------------------------------------------------------------
 
