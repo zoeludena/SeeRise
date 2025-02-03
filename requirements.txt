@@ -1,1 +1,16 @@
 openpyxl
+numpy
+pandas
+matplotlib
+netCDF4
+xarray
+scikit-learn
+eofs
+glob2
+cartopy
+esem
+tensorflow
+gpflow
+siphon
+xarray
+dask[distributed]
