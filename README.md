@@ -25,21 +25,21 @@ The NASA data can be obtained using the [Sea Level Projection Tool](https://seal
 - Download `ipcc_ar6_sea_level_projection_global.xlsx` and upload it in the same directory as your notebooks and `.nc` files.
 
 **Models**
-- Download [`utils.py`](utils.py) and upload onto Casper.
+- Download [`utils.py`](Emulators/utils.py) and upload onto Casper.
 - Pattern Scaling
-  - Download [`pattern_scaling_model.py`](pattern_scaling_model.py) and upload onto Casper.
+  - Download [`pattern_scaling_model.py`](Emulators/pattern_scaling_model.py) and upload onto Casper.
   - Update `data_path` location to directory of `.nc` files.
   - Run the  `py` file to see the linear model and outputs.
 - Gaussian Process
-  - Download [`simple_GP_model.py`](simple_GP_model.py) and upload onto Casper.
+  - Download [`simple_GP_model.py`](Emulators/simple_GP_model.py) and upload onto Casper.
   - Update `data_path` location to directory of `.nc` files.
   - Run the  `py` file to see the gaussian process model and outputs.
 - Random Forest Model
-  - Download [`RF_model_ESEm.py`](RF_model_ESEm.py) and upload onto Casper.
+  - Download [`RF_model_ESEm.py`](Emulators/RF_model_ESEm.py) and upload onto Casper.
   - Place `utils.py` and the  `py` file in the same directory as the `.nc` files.
   - Run the notebook to see the random forest model and outputs.
 - CNN-LTSM
-  - Download [`CNN-LTSM_model.py`](CNN-LTSM_model.py) and upload onto Casper.
+  - Download [`CNN-LTSM_model.py`](Emulators/CNN-LTSM_model.py) and upload onto Casper.
   - Place the `py` file in same directory as the `.nc` files.
   - Run the notebook to see the neural network’s model and outputs.
 
