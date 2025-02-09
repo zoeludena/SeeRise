@@ -18,7 +18,7 @@ The processed training, validation and test data can be obtained from [Zenodo](h
 - Decompressing the two files.
 - Upload all `.nc` files in `train_val` and `test` onto CASPER and place them in the same directory.
 
-The historical data can be obtained from the TODO
+The historical data can also be obtained from [Zenodo](https://zenodo.org/records/3862995). This one is a data supplement for "The causes of sea-level rise since 1900."
 - Download `global_basin_timeseries.xlsx` and upload it in the same directory as your notebooks and `.nc` files.
 
 The NASA data can be obtained using the [Sea Level Projection Tool](https://sealevel.nasa.gov/ipcc-ar6-sea-level-projection-tool?type=global). Beneath each visualization you can download the data as an Excel file.
