@@ -12,5 +12,5 @@ esem
 tensorflow
 gpflow
 siphon
-xarray
 dask[distributed]
+plotly
