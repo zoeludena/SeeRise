@@ -436,3 +436,49 @@ fig.update_layout(
 )
 
 fig.write_html("ssp245_projection.html", full_html=True, include_plotlyjs="cdn", auto_open=False, config={"responsive": True})
+
+'''Projected Sea Level Rise for Each SSP - Linear (Pattern Scaling)'''
+# Features (temperature anomaly) and target (rate of sea level rise)
+X_ssp126 = ssp126_tas.values.reshape(-1, 1)
+X_ssp245 = ssp245_tas.values.reshape(-1, 1)
+X_ssp370 = ssp370_tas.values.reshape(-1, 1)
+X_ssp585 = ssp585_tas.values.reshape(-1, 1)
+
+ssp_sl = pd.DataFrame({"year": range(2015, 2101), 
+                       "pred ssp126": hist_model.predict(X_ssp126).flatten(),
+                       "pred ssp245": hist_model.predict(X_ssp245).flatten(), 
+                       "pred ssp370": hist_model.predict(X_ssp370).flatten(),
+                       "pred ssp585": hist_model.predict(X_ssp585).flatten(),
+                      }).set_index("year").cumsum()
+
+plt.plot(ssp_sl['pred ssp126'], 
+         label='SSP 126', linestyle='--', color='royalblue')
+plt.plot(ssp_sl['pred ssp245'], 
+         label='SSP 245', linestyle='--', color='grey')
+plt.plot(ssp_sl['pred ssp370'], 
+         label='SSP 370', linestyle='--', color='orange')
+plt.plot(ssp_sl['pred ssp585'], 
+         label='SSP 585', linestyle='--', color='lightcoral')
+plt.legend()
+plt.xlabel('Year')
+plt.ylabel('Sea Level Rise (mm)')
+plt.title('Projected Sea Level Rise for Each SSP')
+plt.show()
+
+plt.plot(hist_sl['Observed GMSL [mean]'], 
+         label='Observed', linestyle='-', color='dodgerblue')
+plt.plot(hist_sl['pred_sea_level_rise'], 
+         label='Predicted', linestyle='--', color='black')
+plt.plot(ssp_sl['pred ssp126'] + hist_sl['pred_sea_level_rise'].loc[2014], 
+         label='SSP 126', linestyle='--', color='orchid')
+plt.plot(ssp_sl['pred ssp245'] + hist_sl['pred_sea_level_rise'].loc[2014], 
+         label='SSP 245', linestyle='--', color='lightgreen')
+plt.plot(ssp_sl['pred ssp370'] + hist_sl['pred_sea_level_rise'].loc[2014], 
+         label='SSP 370', linestyle='--', color='gold')
+plt.plot(ssp_sl['pred ssp585'] + hist_sl['pred_sea_level_rise'].loc[2014], 
+         label='SSP 585', linestyle='--', color='lightcoral')
+plt.legend()
+plt.xlabel('Year')
+plt.ylabel('Sea Level Rise (mm)')
+plt.title('Projected Sea Level Rise for Each SSP + Historical')
+plt.show()
