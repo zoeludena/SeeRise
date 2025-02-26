@@ -97,199 +97,28 @@ y_inp_pr=Y["pr"].stack(dims=["lat", "lon"])
 y_inp_pr90=Y["pr90"].stack(dims=["lat", "lon"])
 y_inp_dtr=Y["diurnal_temperature_range"].stack(dims=["lat", "lon"])
 
-alpha = 0.8
-reg0 = Ridge(alpha=alpha, fit_intercept=False)
-reg1 = Ridge(alpha=alpha, fit_intercept=False)
-reg2 = Ridge(alpha=alpha, fit_intercept=False)
-reg3 = Ridge(alpha=alpha, fit_intercept=False)
+'''Pattern Scaling Model'''
 
-'''
-reg0 = LinearRegression(fit_intercept=False)
-reg1 = LinearRegression(fit_intercept=False)
-reg2 = LinearRegression(fit_intercept=False)
-reg3 = LinearRegression(fit_intercept=False)
-'''
+# TAS in historical, SSP126, SSP370, SSP585.
+y_inp_tas = Y["tas"].stack(dims=["lat", "lon"])
 
-rf_tas = reg0.fit(global_mean_temp.to_numpy().reshape(-1, 1),y_inp_tas)
-rf_pr = reg1.fit(global_mean_temp.to_numpy().reshape(-1, 1),y_inp_pr)
-rf_pr90 = reg2.fit(global_mean_temp.to_numpy().reshape(-1, 1),y_inp_pr90)
-rf_dtr = reg3.fit(global_mean_temp.to_numpy().reshape(-1, 1),y_inp_dtr)
+# SSP245
+test_Y = xr.open_dataset('./ClimateBench/outputs_ssp245.nc').compute()
+test_X = xr.open_dataset('./ClimateBench/inputs_ssp245.nc').compute()
 
-# Test on SSP245
+test_inputs = pd.DataFrame(
+    {"CO2": normalize_co2(test_X["CO2"].data),}, 
+    index=test_X["CO2"].coords['time'].data)
 
-test_Y = xr.open_dataset(data_path + pathssp245_Y).compute()
-test_X = xr.open_dataset(data_path + pathssp245_X).compute()
+ps_tas = LinearRegression(fit_intercept=False)
+ps_tas.fit(X['CO2'].to_numpy().reshape(-1, 1), y_inp_tas)
 
-tas_truth = test_Y["tas"].mean('member')
-pr_truth = test_Y["pr"].mean('member') * 86400
-pr90_truth = test_Y["pr90"].mean('member') * 86400
-dtr_truth = test_Y["diurnal_temperature_range"].mean('member')
+pred_tas = ps_tas.predict(
+    test_X['CO2'].to_numpy().reshape(-1, 1)).reshape(86, 96, 144)
 
-# Smooth out the internal variability otherwise it's cheating
-test_inputs = test_Y['tas'].mean('member').weighted(weights).mean(['lat', 'lon']).to_pandas().rolling(10, min_periods=1).mean()
+true_tas = test_Y["tas"].mean('member')
 
-test_inputs
+print(f"RMSE: {get_rmse(true_tas[65:], pred_tas[65:])}")
+print(f"RMSE: {get_rmse(true_tas[35:], pred_tas[35:])}")
 
-m_out_t = rf_tas.predict(test_inputs.to_numpy()[:, np.newaxis])
-m_out_p = rf_pr.predict(test_inputs.to_numpy()[:, np.newaxis])
-m_out_p90 = rf_pr90.predict(test_inputs.to_numpy()[:, np.newaxis])
-m_out_d = rf_dtr.predict(test_inputs.to_numpy()[:, np.newaxis])
-
-m_out_tas = m_out_t.reshape(86, 96, 144)
-m_out_pr = m_out_p.reshape(86, 96, 144)
-m_out_pr90 = m_out_p90.reshape(86, 96, 144)
-m_out_dtr = m_out_d.reshape(86, 96, 144)
-
-xr_output=xr.Dataset(coords={'time': test_X.time.values, 'lat': test_X.latitude.values, 'lon': test_X.longitude.values})
-xr_output["tas"]=(['time', 'lat', 'lon'],  m_out_tas)
-xr_output["diurnal_temperature_range"]=(['time', 'lat', 'lon'],  m_out_dtr)
-xr_output["pr"]=(['time', 'lat', 'lon'],  m_out_pr)
-xr_output["pr90"]=(['time', 'lat', 'lon'],  m_out_pr90)
-    
-#save output to netcdf 
-xr_output.to_netcdf(path_output,'w')
-
-print(f"RMSE: {get_rmse(tas_truth[65:], m_out_tas[65:])}")
-print(f"RMSE: {get_rmse(tas_truth[35:], m_out_tas[35:])}")
-print("\n")
-
-print(f"RMSE: {get_rmse(dtr_truth[65:], m_out_dtr[65:])}")
-print(f"RMSE: {get_rmse(dtr_truth[35:], m_out_dtr[35:])}")
-print("\n")
-
-print(f"RMSE: {get_rmse(pr_truth[65:], m_out_pr[65:])}")
-print(f"RMSE: {get_rmse(pr_truth[35:], m_out_pr[35:])}")
-print("\n")
-
-print(f"RMSE: {get_rmse(pr90_truth[65:], m_out_pr90[65:])}")
-print(f"RMSE: {get_rmse(pr90_truth[35:], m_out_pr90[35:])}")
-
-m_out_tas[65:].shape
-
-# plotting predictions
-# divnorm = colors.TwoSlopeNorm(vmin=-2., vcenter=0., vmax=5)
-# diffnorm = colors.TwoSlopeNorm(vmin=-2., vcenter=0., vmax=2)
-import cartopy.crs as ccrs
-
-## Temperature
-proj = ccrs.PlateCarree()
-fig = plt.figure(figsize=(18, 3))
-fig.suptitle('Temperature')
-
-# Test
-plt.subplot(131, projection=proj)
-tas_truth.sel(time=slice(2050,None)).mean('time').plot(cmap="coolwarm", vmax=3,
-                              cbar_kwargs={"label":"Temperature change / K"})
-plt.gca().coastlines()
-plt.setp(plt.gca(), title='True')
-
-# Emulator
-plt.subplot(132, projection=proj)
-xr_output["tas"].sel(time=slice(2050,None)).mean('time').plot(cmap="coolwarm", vmax=3,
-                       cbar_kwargs={"label":"Temperature change / K"})
-plt.gca().coastlines()
-plt.setp(plt.gca(), title='Pattern scaling')
-
-# Difference
-difference = tas_truth - xr_output["tas"]
-plt.subplot(133, projection=proj)
-difference.sel(time=slice(2050,None)).mean('time').plot(cmap="bwr", vmax=1,
-                cbar_kwargs={"label":"Temperature change / K"})
-plt.gca().coastlines()
-plt.setp(plt.gca(), title='Difference')
-
-# plotting predictions
-# divnorm = colors.TwoSlopeNorm(vmin=-2., vcenter=0., vmax=5)
-# diffnorm = colors.TwoSlopeNorm(vmin=-2., vcenter=0., vmax=2)
-import cartopy.crs as ccrs
-
-## Temperature
-proj = ccrs.PlateCarree()
-fig = plt.figure(figsize=(18, 3))
-fig.suptitle('DTR')
-
-# Test
-plt.subplot(131, projection=proj)
-dtr_truth.sel(time=slice(2050,None)).mean('time').plot(cmap="coolwarm", vmax=3,
-                              cbar_kwargs={"label":"Temperature change / K"})
-plt.gca().coastlines()
-plt.setp(plt.gca(), title='True')
-
-# Emulator
-plt.subplot(132, projection=proj)
-xr_output["diurnal_temperature_range"].sel(time=slice(2050,None)).mean('time').plot(cmap="coolwarm", vmax=3,
-                       cbar_kwargs={"label":"Temperature change / K"})
-plt.gca().coastlines()
-plt.setp(plt.gca(), title='Pattern scaling')
-
-# Difference
-difference = dtr_truth - xr_output["diurnal_temperature_range"]
-plt.subplot(133, projection=proj)
-difference.sel(time=slice(2050,None)).mean('time').plot(cmap="bwr", vmax=0.5,
-                cbar_kwargs={"label":"Temperature change / K"})
-plt.gca().coastlines()
-plt.setp(plt.gca(), title='Difference')
-
-# plotting predictions
-# divnorm = colors.TwoSlopeNorm(vmin=-2., vcenter=0., vmax=5)
-# diffnorm = colors.TwoSlopeNorm(vmin=-2., vcenter=0., vmax=2)
-import cartopy.crs as ccrs
-
-## Temperature
-proj = ccrs.PlateCarree()
-fig = plt.figure(figsize=(18, 3))
-fig.suptitle('Precip')
-
-# Test
-plt.subplot(131, projection=proj)
-pr_truth.sel(time=slice(2050,None)).mean('time').plot(cmap="coolwarm", vmax=3,
-                              cbar_kwargs={"label":"Temperature change / K"})
-plt.gca().coastlines()
-plt.setp(plt.gca(), title='True')
-
-# Emulator
-plt.subplot(132, projection=proj)
-xr_output["pr"].sel(time=slice(2050,None)).mean('time').plot(cmap="coolwarm", vmax=3,
-                       cbar_kwargs={"label":"Temperature change / K"})
-plt.gca().coastlines()
-plt.setp(plt.gca(), title='Pattern scaling')
-
-# Difference
-difference = pr_truth - xr_output["pr"]
-plt.subplot(133, projection=proj)
-difference.sel(time=slice(2050,None)).mean('time').plot(cmap="bwr", vmax=1,
-                cbar_kwargs={"label":"Temperature change / K"})
-plt.gca().coastlines()
-plt.setp(plt.gca(), title='Difference')
-
-# plotting predictions
-# divnorm = colors.TwoSlopeNorm(vmin=-2., vcenter=0., vmax=5)
-# diffnorm = colors.TwoSlopeNorm(vmin=-2., vcenter=0., vmax=2)
-import cartopy.crs as ccrs
-
-## Temperature
-proj = ccrs.PlateCarree()
-fig = plt.figure(figsize=(18, 3))
-fig.suptitle('Precip')
-
-# Test
-plt.subplot(131, projection=proj)
-pr90_truth.sel(time=slice(2050,None)).mean('time').plot(cmap="coolwarm", vmax=3,
-                              cbar_kwargs={"label":"Temperature change / K"})
-plt.gca().coastlines()
-plt.setp(plt.gca(), title='True')
-
-# Emulator
-plt.subplot(132, projection=proj)
-xr_output["pr90"].sel(time=slice(2050,None)).mean('time').plot(cmap="coolwarm", vmax=3,
-                       cbar_kwargs={"label":"Temperature change / K"})
-plt.gca().coastlines()
-plt.setp(plt.gca(), title='Pattern scaling')
-
-# Difference
-difference = pr90_truth - xr_output["pr90"]
-plt.subplot(133, projection=proj)
-difference.sel(time=slice(2050,None)).mean('time').plot(cmap="bwr", vmax=2,
-                cbar_kwargs={"label":"Temperature change / K"})
-plt.gca().coastlines()
-plt.setp(plt.gca(), title='Difference')
+# The model is ps_tas, and takes in CO2 levels as input.
