@@ -77,7 +77,7 @@ ssp585_tas = xr.open_dataset(data_path
 '''Plot of Historical Sea Level'''
 
 # Read in SLR data.
-more_sl = pd.read_excel("global_basin_timeseries.xlsx", index_col=0)
+more_sl = pd.read_excel("data/global_basin_timeseries.xlsx", index_col=0)
 gmsl = more_sl[["Observed GMSL [mean]"]]
 gmsl_anom = gmsl - gmsl.loc[1900]
 
