@@ -45,7 +45,6 @@ The NASA data can be obtained using the [Sea Level Projection Tool](https://seal
 
 ## Sea Level Rise Replication
 
-Ensure the [`Sea_Level_Rise.py`](Sea_Level_Rise.py) is in the same directors as the `.nc` files, `global_basin_timeseries.xlsx`, and `ipcc_ar6_sea_level_projection_global.xlsx`.
+Ensure the [`Sea_Level_Rise.py`](Sea_Level_Rise.py) has access to the `.nc` files, `global_basin_timeseries.xlsx`, and `ipcc_ar6_sea_level_projection_global.xlsx`. The nc file path can be changed in the notebook but is defaulted as ClimateBench. the SLR projections are stored in the data directory of this repository.
 
-This `py` file contains code that will take emulator produced temperature (`tas`) to year 2100 and apply “A Semi-Empirical Approach to Projecting Future Sea-Level Rise” by Stefan Rahmstorf. From there we compare our emulator’s prediction for sea level rise with NASA’s Sea Level Projection.
-
+This `py` file contains code that will take emulator produced temperature (`tas`) to year 2100 and apply “A Semi-Empirical Approach to Projecting Future Sea-Level Rise” by Stefan Rahmstorf. 
