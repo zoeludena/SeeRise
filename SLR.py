@@ -315,3 +315,59 @@ def predict_slr(tas_nc_path):
     SLR_custom = SLR_custom.set_index('year').cumsum() * 1000 # m to mm.
 
     return SLR_custom
+
+'''Function to Predict SLR - GP Emulator'''
+
+'''Function to Predict SLR - CNN Emulator'''
+
+'''Figures'''
+
+'''Using Emulators with SSP 245 Values'''
+
+# TODO - TEMP
+temp = pd.DataFrame({"year": range(2015, 2101), 
+                       "cnn pred": SLR_cnn['50q_dH_dT'].to_numpy(),
+                   "linear pred": SLR_PS['50q_dH_dT'].to_numpy(),
+                    "GP pred": SLR_GP['50q_dH_dT'].to_numpy(),
+                    "RF pred": SLR_RF['50q_dH_dT'].to_numpy()
+                    }).set_index("year")
+
+plt.plot(val_50q['expected_SL'], label='Expected', linestyle=':', color='black', linewidth=2)
+
+plt.plot(temp['linear pred'], label='PS', linestyle='--', color='orange', alpha=0.8)
+plt.plot(temp['GP pred'], label='GP', linestyle='--', color='royalblue', alpha=0.8)
+plt.plot(temp['RF pred'], label='RF', linestyle='--', color='green', alpha=0.8)
+plt.plot(temp['cnn pred'], label='CNN', linestyle='--', color='hotpink', alpha=0.8)
+
+plt.xlabel('Year')
+plt.ylabel('Sea Level Rise (mm)')
+plt.title('Projected Sea Level Rise for SSP 245 Using Emulators')
+
+plt.legend()
+plt.grid(True, linestyle='--', alpha=0.5)
+
+plt.savefig("ssp245_emulator_preds.png", dpi=600, bbox_inches='tight')
+plt.show()
+
+'''Keeping Greenhouse Gases Constant'''
+cnn_df = pd.read_csv("data/CNN_Carbon_4520_Preds.csv").set_index('year')
+gp_df = pd.read_csv("data/GP_Carbon_4520_Preds.csv").set_index('year')
+rf_df = pd.read_csv("data/RF_Carbon_4520_Preds.csv").set_index('year')
+ps_df = pd.read_csv("data/PS_Carbon_4520_Preds.csv").set_index('year')
+
+plt.plot(val_50q['expected_SL'], label='Expected', linestyle=':', color='black', linewidth=2)
+
+plt.plot(ps_df['50q_dH_dT'], label='PS', linestyle='--', color='orange', alpha=0.8)
+plt.plot(gp_df['50q_dH_dT'], label='GP', linestyle='--', color='royalblue', alpha=0.8)
+plt.plot(rf_df['50q_dH_dT'], label='RF', linestyle='--', color='green', alpha=0.8)
+plt.plot(cnn_df['50q_dH_dT'], label='CNN', linestyle='--', color='hotpink', alpha=0.8)
+
+plt.xlabel('Year')
+plt.ylabel('Sea Level Rise (mm)')
+plt.title('Projected Sea Level Rise Keeping Greenhouse Gases Fixed')
+
+plt.legend()
+plt.grid(True, linestyle='--', alpha=0.5)
+
+plt.savefig("2025_fixed_emulator_preds.png", dpi=600, bbox_inches='tight')
+plt.show()
