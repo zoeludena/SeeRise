@@ -12,13 +12,17 @@ warnings.filterwarnings('ignore')
 from esem import gp_model
 from esem.data_processors import Whiten, Normalise
 
-X = xr.open_mfdataset([data_path + 'inputs_historical.nc', data_path + 'inputs_ssp585.nc',
-                      data_path + 'inputs_ssp126.nc', data_path + 'inputs_ssp370.nc']).compute()
+from SLR import model_5q, model_17q, model_50q, model_83q, model_95q
 
-Y = xr.concat([xr.open_dataset(data_path + 'outputs_historical.nc').sel(member=2, method='nearest'),
-               xr.open_dataset(data_path + 'outputs_ssp585.nc').sel(member=2,  method='nearest'),
-              # xr.open_dataset(data_path + 'outputs_ssp126.nc').sel(member=2,  method='nearest'),
-              # xr.open_dataset(data_path + 'outputs_ssp370.nc').sel(member=2,  method='nearest')
+data_path_1 = "data/inputs_outputs/"
+
+X = xr.open_mfdataset([data_path_1 + 'inputs_historical.nc', data_path_1 + 'inputs_ssp585.nc',
+                      data_path_1 + 'inputs_ssp126.nc', data_path_1 + 'inputs_ssp370.nc']).compute()
+
+Y = xr.concat([xr.open_dataset(data_path_1 + 'outputs_historical.nc').sel(member=2, method='nearest'),
+               xr.open_dataset(data_path_1 + 'outputs_ssp585.nc').sel(member=2,  method='nearest'),
+              # xr.open_dataset(data_path_1 + 'outputs_ssp126.nc').sel(member=2,  method='nearest'),
+              # xr.open_dataset(data_path_1 + 'outputs_ssp370.nc').sel(member=2,  method='nearest')
               ], dim='time').compute()
 
 min_co2 = 0.
@@ -78,8 +82,8 @@ tas_gp = gp_model(inputs, Y["tas"])
 tas_gp.train()
 
 #Should this be the test data? Like data in the test file?
-test_Y = xr.open_dataset('outputs_ssp245.nc').compute()
-test_X = xr.open_dataset('inputs_ssp245.nc').compute()
+test_Y = xr.open_dataset(data_path_1 + 'outputs_ssp245.nc').compute()
+test_X = xr.open_dataset(data_path_1 + 'inputs_ssp245.nc').compute()
 
 test_inputs = pd.DataFrame({
     "CO2": normalize_co2(test_X["CO2"].data),
@@ -112,7 +116,7 @@ def create_gp_carbon_preds(possible_carbons):
     df = pd.DataFrame(copy)
     for carbon in possible_carbons:
         # MUST NORMALIZE IT
-        last_hist_CO2 = xr.open_dataset(data_path + 'inputs_historical.nc')['CO2'].data[-1]
+        last_hist_CO2 = xr.open_dataset(data_path_1 + 'inputs_historical.nc')['CO2'].data[-1]
         step = np.linspace(last_hist_CO2, carbon, 86)
         df["CO2"] = np.full(86, normalize_co2(step))
 
@@ -130,4 +134,12 @@ def create_gp_carbon_preds(possible_carbons):
         SLR_custom['95q_dH_dT'] = model_95q.predict(X_custom) ### more efficient.
         
         SLR_custom = SLR_custom.set_index('year').cumsum() * 1000 #<- if want in mm, otherwise remove.
-        SLR_custom.to_csv(f"data/GP_245_Linear/GP_Carbon_{carbon}_Preds.csv")
+
+        # Uncomment line below and create appropriate GP_245_Linear folder to save multiple CSVs
+        # SLR_custom.to_csv(f"data/GP_245_Linear/GP_Carbon_{carbon}_Preds.csv")
+
+        if carbon == 4520:
+            SLR_custom.to_csv(f"data/GP_Carbon_{carbon}_Preds.csv")
+            print("GP model for sea level rise using SSP 245 with 4520 gigatons of cumulative carbon dioxide csv has been created!")
+
+create_gp_carbon_preds(possible_carbons)

@@ -25,8 +25,7 @@ def normalize_ch4(data):
 def un_normalize_ch4(data):
     return data * max_ch4
 
-data_path = './ClimateBench/'
-
+data_path = 'data/inputs_outputs/'
 
 '''Pattern Scaling Model'''
 
@@ -91,15 +90,21 @@ def create_carbon_preds(possible_carbons):
 
         SLR_custom = SLR_custom.set_index('year').cumsum() * 1000 #<- if want in mm, otherwise remove.
 
-        SLR_custom.to_csv(f"PS_Carbon/PS_Carbon_{carbon}_Preds.csv")
+        # Uncomment line below and create appropriate PS_Carbon folder to save multiple CSVs
+        # SLR_custom.to_csv(f"PS_Carbon/PS_Carbon_{carbon}_Preds.csv")
+
+        if carbon == 4520:
+            SLR_custom.to_csv(f"data/PS_Carbon_{carbon}_Preds.csv")
+            print("PS model for sea level rise using SSP 245 with 4520 gigatons of cumulative carbon dioxide csv has been created!")
 
 create_carbon_preds(possible_carbons)
 
-folder_to_zip = "PS_Carbon"
-zip_filename = "PS_Carbon.zip"
+# If creating multiple CSV and want to save it as a zip folder:
+# folder_to_zip = "PS_Carbon"
+# zip_filename = "PS_Carbon.zip"
 
-with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
-    for root, _, files in os.walk(folder_to_zip):
-        for file in files:
-            file_path = os.path.join(root, file)
-            zipf.write(file_path, os.path.relpath(file_path, folder_to_zip))
+# with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
+#     for root, _, files in os.walk(folder_to_zip):
+#         for file in files:
+#             file_path = os.path.join(root, file)
+#             zipf.write(file_path, os.path.relpath(file_path, folder_to_zip))
