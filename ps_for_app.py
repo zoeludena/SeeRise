@@ -7,6 +7,8 @@ import zipfile
 import os
 from sklearn.linear_model import LinearRegression 
 
+from SLR import model_5q, model_17q, model_50q, model_83q, model_95q
+
 '''Utilities for Normalizing the Emissions Data'''
 
 min_co2 = 0.
