@@ -17,6 +17,7 @@ The processed training, validation and test data can be obtained from [Zenodo](h
 - Download `test.tar.gz` and `train_val.tar.gz`.
 - Decompressing the two files.
 - Upload all `.nc` files in `train_val` and `test` onto CASPER and place them in the same directory.
+    - You can also work locally, put the files from `.nc` files into this repository `data/inputs_outputs`.
 
 The historical data can also be obtained from [Zenodo](https://zenodo.org/records/3862995). This one is a data supplement for "The causes of sea-level rise since 1900."
 - Download `global_basin_timeseries.xlsx` and upload it in the same directory as your notebooks and `.nc` files.
