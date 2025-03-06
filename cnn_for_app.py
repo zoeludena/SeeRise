@@ -136,7 +136,6 @@ X_test_np = input_for_training(X_test, skip_historical=False, len_historical=len
 
 X_test = xr.open_mfdataset([data_path_1 + 'inputs_historical.nc',
                             data_path_1 + 'inputs_ssp245.nc']).compute()
-X_test["CO2"]
 
 # X_test = X_test.sel(time=slice("2015", "2100"))
 X_test_2025 = X_test.where(X_test["time"] == 2025, drop=True)
@@ -144,8 +143,8 @@ SO2_2025 = X_test_2025["SO2"].to_numpy()
 CH4_2025 = X_test_2025["CH4"].to_numpy()
 BC_2025 = X_test_2025["BC"].to_numpy()
 
-# possible_carbons = np.arange(0, 9510, 10)
-possible_carbons = np.array([4520])
+possible_carbons = np.arange(0, 9510, 10)
+# possible_carbons = np.array([4520])
 
 def create_cnn_carbon_preds(possible_carbons):
 
@@ -153,7 +152,8 @@ def create_cnn_carbon_preds(possible_carbons):
     
     for carbon in possible_carbons:
         
-        step = normalize_co2(np.linspace(last_hist_CO2, carbon, 86))
+        # Instead of just linearly of 2015-2100, this increases CO2 linearly including historical
+        step = normalize_co2(np.linspace(last_hist_CO2, carbon, 251))
 
         X_test["CO2"][:] = step
         X_test["SO2"][:] = SO2_2025
@@ -184,7 +184,7 @@ def create_cnn_carbon_preds(possible_carbons):
         SLR_custom['95q_dH_dT'] = model_95q.predict(X_custom) ### more efficient.
         
         SLR_custom = SLR_custom.set_index('year').cumsum() * 1000 #<- if want in mm, otherwise remove.
-        
+
         # Uncomment line below and create appropriate CNN_245_Linear folder to save multiple CSVs
         # SLR_custom.to_csv(f"data/CNN_245_Linear/CNN_Carbon_{carbon}_Preds.csv")
 
