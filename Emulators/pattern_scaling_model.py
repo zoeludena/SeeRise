@@ -5,14 +5,14 @@ import xarray as xr
 from sklearn.linear_model import LinearRegression 
 from glob import glob
 
-data_path = "ClimateBench/" # Change to your working directory.
+data_path = "../data/inputs_outputs/" # Change to your working directory.
 
 # Path to save the netcdf file.
 path_output = data_path + 'outputs_ssp245_prediction_pattern2.nc'
 
 # Path to testing data (ssp245).
-pathssp245_Y = 'outputs_ssp245.nc'
-pathssp245_X = 'inputs_ssp245.nc'
+pathssp245_Y = data_path + 'outputs_ssp245.nc'
+pathssp245_X = data_path + 'inputs_ssp245.nc'
 
 # Utilities for normalizing the emissions data.
 min_co2 = 0.
@@ -112,8 +112,8 @@ y_inp_dtr=Y["diurnal_temperature_range"].stack(dims=["lat", "lon"])
 y_inp_tas = Y["tas"].stack(dims=["lat", "lon"])
 
 # SSP245
-test_Y = xr.open_dataset('./ClimateBench/outputs_ssp245.nc').compute()
-test_X = xr.open_dataset('./ClimateBench/inputs_ssp245.nc').compute()
+test_Y = xr.open_dataset(data_path + 'outputs_ssp245.nc').compute()
+test_X = xr.open_dataset(data_path + 'inputs_ssp245.nc').compute()
 
 test_inputs = pd.DataFrame(
     {"CO2": normalize_co2(test_X["CO2"].data),}, 
