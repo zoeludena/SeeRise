@@ -31,16 +31,26 @@ Y = create_predictdand_data(train_files)
 
 # Seems like max_features='auto' no longer works, replacing with 'sqrt'
 rf_tas = rf_model(X, Y['tas'], random_state=0, bootstrap=True, max_features='sqrt', **{'n_estimators': 250, 'min_samples_split': 5, 'min_samples_leaf': 7,  'max_depth': 5,})
+print("RF Tas model created")
 rf_pr = rf_model(X, Y['pr'], random_state=0, bootstrap=True, max_features='sqrt', **{'n_estimators': 150, 'min_samples_split': 15, 'min_samples_leaf': 8,'max_depth': 40,})
+print("RF Pr model created")
 rf_pr90 = rf_model(X, Y['pr90'], random_state=0, bootstrap=True, max_features='sqrt',**{'n_estimators': 250, 'min_samples_split': 15, 'min_samples_leaf': 12,'max_depth': 25,})
+print("RF Pr90 model created")
 rf_dtr = rf_model(X, Y["diurnal_temperature_range"], random_state=0, bootstrap=True, max_features='sqrt',**{'n_estimators': 300, 'min_samples_split': 10, 'min_samples_leaf': 12, 'max_depth': 20,})
+print("RF DTR model created")
 
+print("Begin training TAS model")
 rf_tas.train()
+print("TAS has been trained")
+print("Begin training PR model")
 rf_pr.train()
+print("PR has been trained")
+print("Begin training PR90 model")
 rf_pr90.train()
+print("PR90 has been trained")
+print("Begin training DTR model")
 rf_dtr.train()
-
-print("Variables have been trained")
+print("DTR has been trained")
 
 X_test = get_test_data('ssp245', solvers)
 Y_test = create_predictdand_data(['ssp245'])
