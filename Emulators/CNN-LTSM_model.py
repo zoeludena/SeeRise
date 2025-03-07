@@ -17,6 +17,8 @@ from tensorflow.keras.layers import (
 
 import random
 
+data_path = "../data/inputs_outputs/"
+
 simus = ['ssp126',
          'ssp370',
          'ssp585',
@@ -32,8 +34,8 @@ Y_train = []
 
 for i, simu in enumerate(simus):
 
-    input_name = 'inputs_' + simu + '.nc'
-    output_name = 'outputs_' + simu + '.nc'
+    input_name = data_path + 'inputs_' + simu + '.nc'
+    output_name = data_path + 'outputs_' + simu + '.nc'
 
     # Just load hist data in these cases 'hist-GHG' and 'hist-aer'
     if 'hist' in simu:
@@ -49,18 +51,18 @@ for i, simu in enumerate(simus):
     # Concatenate with historical data in the case of scenario 'ssp126', 'ssp370' and 'ssp585'
     else:
         # load inputs 
-        input_xr = xr.open_mfdataset(['inputs_historical.nc', 
+        input_xr = xr.open_mfdataset([data_path + 'inputs_historical.nc', 
                                     input_name]).compute()
             
         # load outputs                                                             
-        output_xr = xr.concat([xr.open_dataset('outputs_historical.nc').mean(dim='member'),
+        output_xr = xr.concat([xr.open_dataset(data_path + 'outputs_historical.nc').mean(dim='member'),
                                xr.open_dataset(output_name).mean(dim='member')],
                                dim='time').compute()
         output_xr = output_xr.assign({"pr": output_xr.pr * 86400,
                                       "pr90": output_xr.pr90 * 86400}).rename({'lon':'longitude', 
                                                                                'lat': 'latitude'}).transpose('time','latitude', 'longitude').drop(['quantile'])
 
-    print(input_xr.dims, simu)
+    # print(input_xr.dims, simu)
 
     # Append to list 
     X_train.append(input_xr)
@@ -205,6 +207,8 @@ cnn_model.compile(optimizer='rmsprop', loss='mse', metrics=['mse'])
 # Summary to confirm model structure
 cnn_model.summary()
 
+print("This will take a long time...")
+
 # Training
 
 hist = cnn_model.fit(X_train_all,
@@ -215,9 +219,14 @@ hist = cnn_model.fit(X_train_all,
                      epochs=30,
                      verbose=1)
 
+# Save the trained model to an HDF5 file
+cnn_model.save("data/cnn_model_default.keras")
+
+print("Saving cnn model - currently from ClimateBench")
+
 # Open and reformat test data 
-X_test = xr.open_mfdataset(['inputs_historical.nc',
-                            'inputs_ssp245.nc']).compute()
+X_test = xr.open_mfdataset([data_path + 'inputs_historical.nc',
+                            data_path + 'inputs_ssp245.nc']).compute()
 
 # Normalize data 
 for var in ['CO2', 'CH4', 'SO2', 'BC']: 
@@ -229,8 +238,8 @@ X_test_np = input_for_training(X_test, skip_historical=False, len_historical=len
 vars_to_predict = ['tas', 'diurnal_temperature_range', 'pr', 'pr90']
 
 # Open and reformat test data 
-X_test = xr.open_mfdataset(['inputs_historical.nc',
-                             'inputs_ssp245.nc']).compute()
+X_test = xr.open_mfdataset([data_path + 'inputs_historical.nc',
+                             data_path + 'inputs_ssp245.nc']).compute()
 
 # Normalize input data 
 for var in ['CO2', 'CH4', 'SO2', 'BC']: 
@@ -240,6 +249,7 @@ for var in ['CO2', 'CH4', 'SO2', 'BC']:
 X_test_np = input_for_training(X_test, skip_historical=False, len_historical=len_historical) 
 
 # Predictions
+print("Time to make some predictions!")
 
 for var_to_predict in vars_to_predict:
     
@@ -263,7 +273,7 @@ for var_to_predict in vars_to_predict:
 
     # Save test predictions as .nc 
     if var_to_predict == 'diurnal_temperature_range':
-        xr_prediction.to_netcdf('outputs_ssp245_predict_dtr.nc', 'w')
+        xr_prediction.to_netcdf('data/outputs_ssp245_predict_dtr.nc', 'w')
     else:
-        xr_prediction.to_netcdf('outputs_ssp245_predict_{}.nc'.format(var_to_predict), 'w')
+        xr_prediction.to_netcdf('data/outputs_ssp245_predict_{}.nc'.format(var_to_predict), 'w')
     xr_prediction.close()
