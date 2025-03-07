@@ -31,7 +31,8 @@ def normalize_ch4(data):
 def un_normalize_ch4(data):
     return data * max_ch4
 
-data_path = "train_val/" #Change this to where your data is stored!
+print("Get the data for training and testing.")
+data_path = "../data/inputs_outputs/" #Change this to where your data is stored!
 
 # Get one combined historical + ssp585 timeseries for now
 X = xr.open_mfdataset([data_path + 'inputs_historical.nc', data_path + 'inputs_ssp585.nc']).compute()
@@ -46,8 +47,11 @@ Y["pr90"] *= 86400
 # Get the test data (NOT visible to contestants)
 
 #Should this be the test data? Like data in the test file?
-test_Y = xr.open_dataset('train_val/outputs_ssp245.nc').compute() #originally changed because we do not have 245
-test_X = xr.open_dataset('train_val/inputs_ssp245.nc').compute()
+test_Y = xr.open_dataset(data_path + 'outputs_ssp245.nc').compute() #originally changed because we do not have 245
+test_X = xr.open_dataset(data_path + 'inputs_ssp245.nc').compute()
+
+
+print("Create the EOF solvers")
 
 # Create an EOF solver to do the EOF analysis. Square-root of cosine of
 # latitude weights are applied before the computation of EOFs.
@@ -85,17 +89,26 @@ leading_historical_inputs = pd.DataFrame({
 # Combine with aerosol EOFs
 leading_historical_inputs=pd.concat([leading_historical_inputs, bc_df, so2_df], axis=1)
 
+
 tas_gp = gp_model(leading_historical_inputs, Y["tas"])
 tas_gp.train()
+
+print("Train TAS")
 
 pr_gp = gp_model(leading_historical_inputs, Y["pr"])
 pr_gp.train()
 
+print("Train PR")
+
 dtr_gp = gp_model(leading_historical_inputs, Y["diurnal_temperature_range"])
 dtr_gp.train()
 
+print("Train DTR")
+
 pr90_gp = gp_model(leading_historical_inputs, Y["pr90"])
 pr90_gp.train()
+
+print("Train pr90")
 
 # Will be hidden from contestants
 tas_truth = test_Y["tas"].mean('member')
@@ -121,6 +134,8 @@ m_pr, _ = pr_gp.predict(test_inputs)
 m_pr90, _ = pr90_gp.predict(test_inputs)
 m_dtr, _ = dtr_gp.predict(test_inputs)
 
+print("Predictions have been made for tas, pr, pr90, and dtr.")
+
 # tas Plot (Truth)
 
 divnorm=colors.TwoSlopeNorm(vmin=-2., vcenter=0., vmax=5)
@@ -132,7 +147,7 @@ with plt.style.context("dark_background"):
     ax.set_title("tas True 2050")
     ax.coastlines()
 
-plt.show()
+plt.savefig("gp_images/true_tas.png")
 
 # tas Plot (Emulated)
 
@@ -143,11 +158,11 @@ with plt.style.context("dark_background"):
     ax.set_title("tas Emulated 2050")
     ax.coastlines()
 
-plt.show()
+plt.savefig("gp_images/emulated_tas.png")
+print("Tas plots have been created")
 
 # pr plot (Truth)
 
-from matplotlib import colors
 divnorm=colors.TwoSlopeNorm(vmin=-2., vcenter=0., vmax=5)
 
 with plt.style.context("dark_background"):
@@ -157,7 +172,7 @@ with plt.style.context("dark_background"):
     ax.set_title("pr True 2050")
     ax.coastlines()
 
-plt.show()
+plt.savefig("gp_images/true_pr.png")
 
 # pr plot (Emulated)
 
@@ -168,11 +183,11 @@ with plt.style.context("dark_background"):
     ax.set_title("pr Emulated 2050")
     ax.coastlines()
 
-plt.show()
+plt.savefig("gp_images/emulated_pr.png")
+print("Pr plots have been created")
 
 # dtr plot (Truth)
 
-from matplotlib import colors
 divnorm=colors.TwoSlopeNorm(vmin=-2., vcenter=0., vmax=5)
 
 with plt.style.context("dark_background"):
@@ -182,7 +197,7 @@ with plt.style.context("dark_background"):
     ax.set_title("dtr True 2050")
     ax.coastlines()
 
-plt.show()
+plt.savefig("gp_images/true_dtr.png")
 
 # dtr plot (Emulated)
 
@@ -193,7 +208,12 @@ with plt.style.context("dark_background"):
     ax.set_title("dtr Emulated 2050")
     ax.coastlines()
 
-plt.show()
+plt.savefig("gp_images/emulated_dtr.png")
+print("DTR plots have been created")
+
+def get_rmse(truth, pred):
+    weights = np.cos(np.deg2rad(truth.lat))
+    return np.sqrt(((truth-pred)**2).weighted(weights).mean(['lat', 'lon'])).data
 
 def view_model_rmse(kernels, op):
     """
@@ -229,26 +249,30 @@ def view_model_rmse(kernels, op):
 
 view_model_rmse(["Linear"], "add")
 
-view_model_rmse(["RBF"], "add")
+print("Example complete for viewing model rmse.")
 
-view_model_rmse(["Polynomial"], "add")
+# view_model_rmse(["RBF"], "add")
 
-view_model_rmse(["Linear", "RBF"], "add")
+# view_model_rmse(["Polynomial"], "add")
 
-view_model_rmse(["Linear", "Polynomial"], "add")
+# view_model_rmse(["Linear", "RBF"], "add")
 
-view_model_rmse(["Polynomial", "RBF"], "add")
+# view_model_rmse(["Linear", "Polynomial"], "add")
 
-view_model_rmse(["Linear", "RBF"], "mul")
+# view_model_rmse(["Polynomial", "RBF"], "add")
 
-view_model_rmse(["Linear", "Polynomial"], "mul")
+# view_model_rmse(["Linear", "RBF"], "mul")
 
-view_model_rmse(["Polynomial", "RBF"], "mul")
+# view_model_rmse(["Linear", "Polynomial"], "mul")
 
-# We found Linear + Polynomial worked best and was closest to default
+# view_model_rmse(["Polynomial", "RBF"], "mul")
+
+'''We found Linear + Polynomial worked best and was closest to default'''
 
 kernels = ["Linear", "Polynomial"]
 op = "add"
+
+print("Training optimal model (Linear + Polynomial)")
 
 tas_gp = gp_model(leading_historical_inputs, Y["tas"], kernel=kernels, kernel_op = op)
 tas_gp.train()
@@ -264,190 +288,194 @@ m_pr, _ = pr_gp.predict(test_inputs)
 m_pr90, _ = pr90_gp.predict(test_inputs)
 m_dtr, _ = dtr_gp.predict(test_inputs)
 
-# tas plot
+print("Predicting optimal model")
 
-# Create a figure with three side-by-side subplots
-fig, axes = plt.subplots(
-    nrows=1, ncols=3, figsize=(21, 6),
-    subplot_kw={"projection": ccrs.PlateCarree()}
-)
+'''Uncomment below to see plots:'''
 
-# Plot the true projection
-ax = axes[0]
-tas_truth.sel(time=2050).plot(
-    ax=ax, cmap="coolwarm", norm=divnorm,
-    cbar_kwargs={"label": "Temperature change / K"}
-)
-ax.set_title("True 2050")
-ax.coastlines()
+# # tas plot
 
-# Plot the emulated result
-ax = axes[1]
-m_tas.sel(sample=35).plot(
-    ax=ax, cmap="coolwarm", norm=divnorm,
-    cbar_kwargs={"label": "Temperature change / K"}
-)
-ax.set_title("Emulated 2050")
-ax.coastlines()
+# # Create a figure with three side-by-side subplots
+# fig, axes = plt.subplots(
+#     nrows=1, ncols=3, figsize=(21, 6),
+#     subplot_kw={"projection": ccrs.PlateCarree()}
+# )
 
-# Plot the difference (True - Emulated)
-ax = axes[2]
-difference = tas_truth.sel(time=2050) - m_tas.sel(sample=35)  # Calculate the difference
-difference.plot(
-    ax=ax, cmap="bwr",  # Use a diverging colormap to highlight positive/negative differences
-    cbar_kwargs={"label": "Difference in Temperature change / K"}
-)
-ax.set_title("Difference (True - Emulated)")
-ax.coastlines()
+# # Plot the true projection
+# ax = axes[0]
+# tas_truth.sel(time=2050).plot(
+#     ax=ax, cmap="coolwarm", norm=divnorm,
+#     cbar_kwargs={"label": "Temperature change / K"}
+# )
+# ax.set_title("True 2050")
+# ax.coastlines()
 
-# Add a main title
-fig.suptitle("tas (Near-Surface Air Temperature)", fontsize=18, x=0.5)
+# # Plot the emulated result
+# ax = axes[1]
+# m_tas.sel(sample=35).plot(
+#     ax=ax, cmap="coolwarm", norm=divnorm,
+#     cbar_kwargs={"label": "Temperature change / K"}
+# )
+# ax.set_title("Emulated 2050")
+# ax.coastlines()
 
-# Adjust layout for better appearance
-fig.tight_layout()
+# # Plot the difference (True - Emulated)
+# ax = axes[2]
+# difference = tas_truth.sel(time=2050) - m_tas.sel(sample=35)  # Calculate the difference
+# difference.plot(
+#     ax=ax, cmap="bwr",  # Use a diverging colormap to highlight positive/negative differences
+#     cbar_kwargs={"label": "Difference in Temperature change / K"}
+# )
+# ax.set_title("Difference (True - Emulated)")
+# ax.coastlines()
 
-# Save the figure
-fig.savefig("gp_tas_comparison_with_difference.png", dpi=250, bbox_inches="tight")
+# # Add a main title
+# fig.suptitle("tas (Near-Surface Air Temperature)", fontsize=18, x=0.5)
 
-plt.show()
+# # Adjust layout for better appearance
+# fig.tight_layout()
 
-# dtr plot
+# # Save the figure
+# fig.savefig("gp_tas_comparison_with_difference.png", dpi=250, bbox_inches="tight")
 
-# Create a figure with three side-by-side subplots
-fig, axes = plt.subplots(
-    nrows=1, ncols=3, figsize=(21, 6),
-    subplot_kw={"projection": ccrs.PlateCarree()}
-)
+# plt.show()
 
-# Plot the true projection
-ax = axes[0]
-dtr_truth.sel(time=2050).plot(
-    ax=ax, cmap="coolwarm", norm=divnorm,
-    cbar_kwargs={"label": "Temperature change / K"}
-)
-ax.set_title("True 2050")
-ax.coastlines()
+# # dtr plot
 
-# Plot the emulated result
-ax = axes[1]
-m_dtr.sel(sample=35).plot(
-    ax=ax, cmap="coolwarm", norm=divnorm,
-    cbar_kwargs={"label": "Temperature change / K"}
-)
-ax.set_title("Emulated 2050")
-ax.coastlines()
+# # Create a figure with three side-by-side subplots
+# fig, axes = plt.subplots(
+#     nrows=1, ncols=3, figsize=(21, 6),
+#     subplot_kw={"projection": ccrs.PlateCarree()}
+# )
 
-# Plot the difference (True - Emulated)
-ax = axes[2]
-difference = dtr_truth.sel(time=2050) - m_dtr.sel(sample=35)  # Calculate the difference
-difference.plot(
-    ax=ax, cmap="bwr",  # Use a diverging colormap to highlight positive/negative differences
-    cbar_kwargs={"label": "Difference in Temperature change / K"}
-)
-ax.set_title("Difference (True - Emulated)")
-ax.coastlines()
+# # Plot the true projection
+# ax = axes[0]
+# dtr_truth.sel(time=2050).plot(
+#     ax=ax, cmap="coolwarm", norm=divnorm,
+#     cbar_kwargs={"label": "Temperature change / K"}
+# )
+# ax.set_title("True 2050")
+# ax.coastlines()
 
-# Add a main title
-fig.suptitle("dtr (Diurnal Temperature Range)", fontsize=18, x=0.5)
+# # Plot the emulated result
+# ax = axes[1]
+# m_dtr.sel(sample=35).plot(
+#     ax=ax, cmap="coolwarm", norm=divnorm,
+#     cbar_kwargs={"label": "Temperature change / K"}
+# )
+# ax.set_title("Emulated 2050")
+# ax.coastlines()
 
-# Adjust layout for better appearance
-fig.tight_layout()
+# # Plot the difference (True - Emulated)
+# ax = axes[2]
+# difference = dtr_truth.sel(time=2050) - m_dtr.sel(sample=35)  # Calculate the difference
+# difference.plot(
+#     ax=ax, cmap="bwr",  # Use a diverging colormap to highlight positive/negative differences
+#     cbar_kwargs={"label": "Difference in Temperature change / K"}
+# )
+# ax.set_title("Difference (True - Emulated)")
+# ax.coastlines()
 
-# Save the figure
-fig.savefig("gp_dtr_comparison_with_difference.png", dpi=250, bbox_inches="tight")
+# # Add a main title
+# fig.suptitle("dtr (Diurnal Temperature Range)", fontsize=18, x=0.5)
 
-plt.show()
+# # Adjust layout for better appearance
+# fig.tight_layout()
 
-# pr plot
+# # Save the figure
+# fig.savefig("gp_dtr_comparison_with_difference.png", dpi=250, bbox_inches="tight")
 
-# Create a figure with three side-by-side subplots
-fig, axes = plt.subplots(
-    nrows=1, ncols=3, figsize=(21, 6),
-    subplot_kw={"projection": ccrs.PlateCarree()}
-)
+# plt.show()
 
-# Plot the true projection
-ax = axes[0]
-pr_truth.sel(time=2050).plot(
-    ax=ax, cmap="coolwarm", norm=divnorm,
-    cbar_kwargs={"label": "Precipitation change / mm day-1"}
-)
-ax.set_title("True 2050")
-ax.coastlines()
+# # pr plot
 
-# Plot the emulated result
-ax = axes[1]
-m_dtr.sel(sample=35).plot(
-    ax=ax, cmap="coolwarm", norm=divnorm,
-    cbar_kwargs={"label": "Precipitation change / mm day-1"}
-)
-ax.set_title("Emulated 2050")
-ax.coastlines()
+# # Create a figure with three side-by-side subplots
+# fig, axes = plt.subplots(
+#     nrows=1, ncols=3, figsize=(21, 6),
+#     subplot_kw={"projection": ccrs.PlateCarree()}
+# )
 
-# Plot the difference (True - Emulated)
-ax = axes[2]
-difference = dtr_truth.sel(time=2050) - m_dtr.sel(sample=35)  # Calculate the difference
-difference.plot(
-    ax=ax, cmap="bwr",  # Use a diverging colormap to highlight positive/negative differences
-    cbar_kwargs={"label": "Difference in Precipitation change / mm day-1"}
-)
-ax.set_title("Difference (True - Emulated)")
-ax.coastlines()
+# # Plot the true projection
+# ax = axes[0]
+# pr_truth.sel(time=2050).plot(
+#     ax=ax, cmap="coolwarm", norm=divnorm,
+#     cbar_kwargs={"label": "Precipitation change / mm day-1"}
+# )
+# ax.set_title("True 2050")
+# ax.coastlines()
 
-# Add a main title
-fig.suptitle("pr (Precipitation)", fontsize=18, x=0.5)
+# # Plot the emulated result
+# ax = axes[1]
+# m_dtr.sel(sample=35).plot(
+#     ax=ax, cmap="coolwarm", norm=divnorm,
+#     cbar_kwargs={"label": "Precipitation change / mm day-1"}
+# )
+# ax.set_title("Emulated 2050")
+# ax.coastlines()
 
-# Adjust layout for better appearance
-fig.tight_layout()
+# # Plot the difference (True - Emulated)
+# ax = axes[2]
+# difference = dtr_truth.sel(time=2050) - m_dtr.sel(sample=35)  # Calculate the difference
+# difference.plot(
+#     ax=ax, cmap="bwr",  # Use a diverging colormap to highlight positive/negative differences
+#     cbar_kwargs={"label": "Difference in Precipitation change / mm day-1"}
+# )
+# ax.set_title("Difference (True - Emulated)")
+# ax.coastlines()
 
-# Save the figure
-fig.savefig("gp_pr_comparison_with_difference.png", dpi=250, bbox_inches="tight")
+# # Add a main title
+# fig.suptitle("pr (Precipitation)", fontsize=18, x=0.5)
 
-plt.show()
+# # Adjust layout for better appearance
+# fig.tight_layout()
 
-# pr90 plot
+# # Save the figure
+# fig.savefig("gp_pr_comparison_with_difference.png", dpi=250, bbox_inches="tight")
 
-# Create a figure with three side-by-side subplots
-fig, axes = plt.subplots(
-    nrows=1, ncols=3, figsize=(21, 6),
-    subplot_kw={"projection": ccrs.PlateCarree()}
-)
+# plt.show()
 
-# Plot the true projection
-ax = axes[0]
-pr90_truth.sel(time=2050).plot(
-    ax=ax, cmap="coolwarm", norm=divnorm,
-    cbar_kwargs={"label": "Precipitation change / mm day-1"}
-)
-ax.set_title("True 2050")
-ax.coastlines()
+# # pr90 plot
 
-# Plot the emulated result
-ax = axes[1]
-m_dtr.sel(sample=35).plot(
-    ax=ax, cmap="coolwarm", norm=divnorm,
-    cbar_kwargs={"label": "Precipitation change / mm day-1"}
-)
-ax.set_title("Emulated 2050")
-ax.coastlines()
+# # Create a figure with three side-by-side subplots
+# fig, axes = plt.subplots(
+#     nrows=1, ncols=3, figsize=(21, 6),
+#     subplot_kw={"projection": ccrs.PlateCarree()}
+# )
 
-# Plot the difference (True - Emulated)
-ax = axes[2]
-difference = dtr_truth.sel(time=2050) - m_dtr.sel(sample=35)  # Calculate the difference
-difference.plot(
-    ax=ax, cmap="bwr",  # Use a diverging colormap to highlight positive/negative differences
-    cbar_kwargs={"label": "Difference in Precipitation change / mm day-1"}
-)
-ax.set_title("Difference (True - Emulated)")
-ax.coastlines()
+# # Plot the true projection
+# ax = axes[0]
+# pr90_truth.sel(time=2050).plot(
+#     ax=ax, cmap="coolwarm", norm=divnorm,
+#     cbar_kwargs={"label": "Precipitation change / mm day-1"}
+# )
+# ax.set_title("True 2050")
+# ax.coastlines()
 
-# Add a main title
-fig.suptitle("pr90 (90th percentile Precipitation)", fontsize=18, x=0.5)
+# # Plot the emulated result
+# ax = axes[1]
+# m_dtr.sel(sample=35).plot(
+#     ax=ax, cmap="coolwarm", norm=divnorm,
+#     cbar_kwargs={"label": "Precipitation change / mm day-1"}
+# )
+# ax.set_title("Emulated 2050")
+# ax.coastlines()
 
-# Adjust layout for better appearance
-fig.tight_layout()
+# # Plot the difference (True - Emulated)
+# ax = axes[2]
+# difference = dtr_truth.sel(time=2050) - m_dtr.sel(sample=35)  # Calculate the difference
+# difference.plot(
+#     ax=ax, cmap="bwr",  # Use a diverging colormap to highlight positive/negative differences
+#     cbar_kwargs={"label": "Difference in Precipitation change / mm day-1"}
+# )
+# ax.set_title("Difference (True - Emulated)")
+# ax.coastlines()
 
-# Save the figure
-fig.savefig("gp_pr90_comparison_with_difference.png", dpi=250, bbox_inches="tight")
+# # Add a main title
+# fig.suptitle("pr90 (90th percentile Precipitation)", fontsize=18, x=0.5)
 
-plt.show()
+# # Adjust layout for better appearance
+# fig.tight_layout()
+
+# # Save the figure
+# fig.savefig("gp_pr90_comparison_with_difference.png", dpi=250, bbox_inches="tight")
+
+# plt.show()
