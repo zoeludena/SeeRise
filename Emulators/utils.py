@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from eofs.xarray import Eof
-# data_path = './data/train_val/'
-data_path = "train_val/"
+
+data_path = "../data/inputs_outputs/"
 
 min_co2 = 0.
 max_co2 = 9500
@@ -93,10 +93,9 @@ def get_test_data(file, eof_solvers, n_eofs=5):
 
 
 def create_predictdand_data(data_sets):
-    data_path = '../test/'
     if isinstance(data_sets, str):
         data_sets = [data_sets]
-    Y = xr.concat([xr.open_dataset(data_path + f"train_val/outputs_{file}.nc") for file in data_sets], dim='time').mean("member")
+    Y = xr.concat([xr.open_dataset(data_path + f"outputs_{file}.nc") for file in data_sets], dim='time').mean("member")
     # Convert the precip values to mm/day
     Y["pr"] *= 86400
     Y["pr90"] *= 86400
