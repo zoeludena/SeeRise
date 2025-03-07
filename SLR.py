@@ -9,11 +9,13 @@ import warnings
 from glob import glob
 
 from sklearn.linear_model import LinearRegression
+'''
 from eofs.xarray import Eof
 import esem
 from esem import gp_model, rf_model
 from esem.data_processors import Whiten, Normalise
 from tensorflow.keras.models import load_model
+'''
 
 warnings.filterwarnings('ignore')
 

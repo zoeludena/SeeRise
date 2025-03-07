@@ -6,8 +6,59 @@ import xarray as xr
 import zipfile
 import os
 from sklearn.linear_model import LinearRegression 
+from glob import glob
 
 from SLR import model_5q, model_17q, model_50q, model_83q, model_95q
+
+
+# Change this path to where your emulator inputs and outputs are stored. We are training
+# the SLR model on historical data and predicting on SSP data.
+data_path_1 = "data/inputs_outputs/"
+
+inputs = glob(data_path_1 + "inputs_s*.nc")
+SECONDS_IN_YEAR = 60*60*24*365 #s
+
+for input in inputs:
+    label=input.split('_')[1][:-3]
+    X = xr.open_dataset(input)
+    x = range(2015, 2101)
+
+    # Need this block and the next for the weights.
+    weights = np.cos(np.deg2rad(X.latitude))
+
+
+'''More Input Processing'''
+
+# Get one combined historical + ssp585 + ssp126 + ssp370 timeseries for now.
+X = xr.concat([
+    xr.open_dataset(data_path_1 + 'inputs_historical.nc'), 
+    xr.open_dataset(data_path_1 + 'inputs_ssp585.nc'),
+    xr.open_dataset(data_path_1 + 'inputs_ssp126.nc'),
+    xr.open_dataset(data_path_1 + 'inputs_ssp370.nc')], 
+    dim='time').compute()
+
+# Take the 2nd ensemble member for the historical (the first one has some 
+# missing DTR values for some reason...) and the 1st one for ssp585, ssp126, 
+# ssp370.
+Y = xr.concat([
+    xr.open_dataset(data_path_1 + 'outputs_historical.nc').sel(member=2), 
+    xr.open_dataset(data_path_1 + 'outputs_ssp585.nc').sel(member=1),
+    xr.open_dataset(data_path_1 + 'outputs_ssp126.nc').sel(member=1),
+    xr.open_dataset(data_path_1 + 'outputs_ssp370.nc').sel(member=1)], 
+    dim='time').compute()
+
+# Convert the precip values to mm/day.
+Y["pr"] *= 86400
+Y["pr90"] *= 86400
+
+X["time"]=np.arange(1,424) 
+Y["time"]=np.arange(1,424)
+
+# Need the weights here as well. Very important in order to weight
+# the output file TAS variables.
+weights = np.cos(np.deg2rad(Y.lat))
+global_mean_temp = Y['tas'].weighted(weights).mean(['lat', 'lon']).to_pandas()
+
 
 '''Utilities for Normalizing the Emissions Data'''
 
