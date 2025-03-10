@@ -47,6 +47,7 @@ inputs = pd.DataFrame({
     "CH4": normalize_ch4(X["CH4"].data)
 }, index=X["CO2"].coords['time'].data)
 
+print("Start making BC and SO2 Solvers")
 # Create an EOF solver to do the EOF analysis. Square-root of cosine of
 # latitude weights are applied before the computation of EOFs.
 bc_solver = Eof(X['BC'])
@@ -86,7 +87,11 @@ tas_rf = rf_model(inputs, Y['tas'],
                      'min_samples_leaf': 4,  
                      'max_depth': 12,})
 
+print("Created random forest model")
+
 tas_rf.train()
+
+print("Train model")
 
 test_Y = xr.open_dataset(data_path_1 + 'outputs_ssp245.nc').compute()
 test_X = xr.open_dataset(data_path_1 + 'inputs_ssp245.nc').compute()
@@ -103,6 +108,7 @@ test_inputs=pd.concat([test_inputs,
                        ], axis=1)
 
 possible_carbons = np.arange(0, 9510, 10)
+possible_carbons = np.array([4520])
 
 def create_rf_carbon_preds(possible_carbons):
 
