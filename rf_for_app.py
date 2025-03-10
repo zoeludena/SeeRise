@@ -108,7 +108,6 @@ test_inputs=pd.concat([test_inputs,
                        ], axis=1)
 
 possible_carbons = np.arange(0, 9510, 10)
-possible_carbons = np.array([4520])
 
 def create_rf_carbon_preds(possible_carbons):
 
