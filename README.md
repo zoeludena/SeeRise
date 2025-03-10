@@ -46,6 +46,12 @@ The NASA data can be obtained using the [Sea Level Projection Tool](https://seal
 
 ## Sea Level Rise Replication
 
-Ensure the [`Sea_Level_Rise.py`](Sea_Level_Rise.py) has access to the `.nc` files, `global_basin_timeseries.xlsx`, and `ipcc_ar6_sea_level_projection_global.xlsx`. The nc file path can be changed in the notebook but is defaulted as ClimateBench. the SLR projections are stored in the data directory of this repository.
+The sea level rise model can be run locally, with appropriate dependencies installed. Follow instructions in `data/inputs_outputs/instructions.md` to prepare the data necessary for the model. Run `SLR.py` in the root directory to reproduce our sea level rise model that uses Rahmstorf’s approach.
 
-This `py` file contains code that will take emulator produced temperature (`tas`) to year 2100 and apply “A Semi-Empirical Approach to Projecting Future Sea-Level Rise” by Stefan Rahmstorf. 
+To see the entire sea level rise prediction pipeline and get actual predictions from our model (which are the same as predictions on our interactive streamlit app), run the corresponding python file for each climate emulator:
+- `ps_for_app.py`
+- `gp_for_app.py`
+- `rf_for_app.py`
+- `cnn_for_app.py`
+
+Uncomment the line toward the end of each file and under `“# Uncomment line below and create appropriate X_245_Linear folder to save multiple CSVs”` to generate and store CSV files of sea level rise predictions shown in our app.
